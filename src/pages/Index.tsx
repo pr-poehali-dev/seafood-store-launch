@@ -4,19 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const HERO_IMAGE = "https://cdn.poehali.dev/projects/33d78019-499d-47e1-b113-ac6d418ebc45/files/f25e98d8-9b2b-46d0-8016-7902e068a2fe.jpg";
+const API = "https://functions.poehali.dev/4fd5d6d6-6e1b-482a-8e4b-c633c84dcef9";
+
+type Product = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  emoji: string;
+  badge: string | null;
+  rating: number;
+  reviews_count: number;
+};
 
 const CATEGORIES = ["Все", "Керамика", "Свечи", "Текстиль", "Деревянные", "Украшения", "Открытки"];
-
-const PRODUCTS = [
-  { id: 1, name: "Керамическая кружка «Уют»", price: 1290, category: "Керамика", rating: 4.8, reviews: 34, badge: "Хит", emoji: "🍵", desc: "Ручная лепка, глазурь бежевых тонов" },
-  { id: 2, name: "Соевая свеча «Лаванда»", price: 890, category: "Свечи", rating: 4.9, reviews: 58, badge: "Новинка", emoji: "🕯️", desc: "80 часов горения, хлопковый фитиль" },
-  { id: 3, name: "Льняной мешочек для подарка", price: 350, category: "Текстиль", rating: 4.7, reviews: 21, badge: null, emoji: "🎁", desc: "С персонализацией, размер S/M/L" },
-  { id: 4, name: "Деревянный медведь-сувенир", price: 1750, category: "Деревянные", rating: 4.6, reviews: 15, badge: null, emoji: "🐻", desc: "Ручная роспись, кедровое дерево" },
-  { id: 5, name: "Серьги «Первый снег»", price: 2100, category: "Украшения", rating: 5.0, reviews: 9, badge: "Новинка", emoji: "❄️", desc: "Серебро 925, белая эмаль" },
-  { id: 6, name: "Набор открыток «Тепло»", price: 490, category: "Открытки", rating: 4.9, reviews: 42, badge: "Хит", emoji: "💌", desc: "10 открыток с конвертами" },
-  { id: 7, name: "Глиняный горшок для трав", price: 980, category: "Керамика", rating: 4.7, reviews: 27, badge: null, emoji: "🌿", desc: "С дренажными отверстиями, декор" },
-  { id: 8, name: "Свеча «Хвойный лес»", price: 1100, category: "Свечи", rating: 4.8, reviews: 33, badge: null, emoji: "🌲", desc: "Аромат пихты и кедра, 100ч" },
-];
 
 const REVIEWS = [
   { id: 1, name: "Ирина К.", stars: 5, text: "Заказывала кружки в подарок коллегам — все в восторге! Упаковка невероятно красивая, такое ощущение что открываешь настоящий сюрприз.", product: "Керамическая кружка", date: "12 мая 2026" },
@@ -40,14 +42,23 @@ export default function Index() {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
-  const filtered = PRODUCTS.filter(p => {
+  useEffect(() => {
+    fetch(API)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProducts(data); })
+      .finally(() => setProductsLoading(false));
+  }, []);
+
+  const filtered = products.filter(p => {
     const matchCat = activeCategory === "Все" || p.category === activeCategory;
-    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
-  const recommended = PRODUCTS.filter(p => p.rating >= 4.8).slice(0, 4);
+  const recommended = products.filter(p => p.rating >= 4.8).slice(0, 4);
 
   const addToCart = (id: number) => setCart(prev => [...prev, id]);
 
@@ -63,10 +74,10 @@ export default function Index() {
     });
   };
 
-  const cartItems = cart.map(id => PRODUCTS.find(p => p.id === id)!).filter(Boolean);
+  const cartItems = cart.map(id => products.find(p => p.id === id)!).filter(Boolean);
   const cartTotal = cartItems.reduce((sum, p) => sum + p.price, 0);
   const uniqueCartItems = Array.from(new Set(cart)).map(id => ({
-    product: PRODUCTS.find(p => p.id === id)!,
+    product: products.find(p => p.id === id)!,
     qty: cart.filter(c => c === id).length,
   }));
 
@@ -360,7 +371,12 @@ export default function Index() {
           </div>
 
           {/* Grid */}
-          {filtered.length === 0 ? (
+          {productsLoading ? (
+            <div style={{ textAlign: "center", padding: "80px 0", color: "#a0856d" }}>
+              <span style={{ fontSize: "2.5rem", display: "block", marginBottom: 12 }}>⏳</span>
+              <p style={{ fontFamily: "Golos Text, sans-serif" }}>Загружаем товары...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "#a0856d" }}>
               <span style={{ fontSize: "3rem", display: "block", marginBottom: 12 }}>🔍</span>
               <p style={{ fontFamily: "Golos Text, sans-serif", fontSize: "1.1rem" }}>Ничего не найдено</p>
@@ -389,10 +405,10 @@ export default function Index() {
                     </div>
                     <div style={{ padding: 14 }}>
                       <p style={{ fontFamily: "Golos Text, sans-serif", fontSize: "0.85rem", fontWeight: 500, color: "#5C3317", margin: "0 0 4px", lineHeight: 1.35 }}>{p.name}</p>
-                      <p style={{ fontFamily: "Golos Text, sans-serif", fontSize: "0.75rem", color: "#a0856d", margin: "0 0 6px" }}>{p.desc}</p>
+                      <p style={{ fontFamily: "Golos Text, sans-serif", fontSize: "0.75rem", color: "#a0856d", margin: "0 0 6px" }}>{p.description}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.75rem", color: "#a0856d", marginBottom: 8 }}>
                         <span style={{ color: "#D4956A" }}>★</span>
-                        <span>{p.rating} ({p.reviews})</span>
+                        <span>{p.rating} ({p.reviews_count})</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span style={{ fontFamily: "Cormorant, serif", fontSize: "1.3rem", color: "#B5674D", fontWeight: 600 }}>{p.price.toLocaleString()} ₽</span>
@@ -423,7 +439,7 @@ export default function Index() {
                 <h3 style={{ fontFamily: "Cormorant, Georgia, serif", fontSize: "2rem", fontWeight: 400, color: "#5C3317", margin: 0 }}>Вам может понравиться</h3>
               </div>
               <div style={{ background: "#F5EDD8", borderRadius: 20, padding: 20 }} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {PRODUCTS.filter(p => p.badge === "Новинка" || p.rating === 5.0).map(p => (
+                {products.filter(p => p.badge === "Новинка" || p.rating === 5.0).map(p => (
                   <div
                     key={p.id}
                     style={{ background: "white", borderRadius: 14, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, border: "1px solid #EDE0C8", cursor: "pointer", transition: "all 0.2s" }}

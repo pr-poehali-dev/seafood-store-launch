@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Получить список товаров (публичный)",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Попытка создать товар без авторизации",
+      "method": "POST",
+      "path": "/",
+      "body": {"name": "Тест"},
+      "expectedStatus": 403,
+      "bodyMatcher": "partial",
+      "expectedBody": {"error": "Нет доступа"}
+    }
+  ]
+}
